@@ -1,15 +1,23 @@
-from pykafka import KafkaClient
+# This script connects to Kafka and send a few messages
 
+from kafka import KafkaProducer
 
+cert_path = "../certs"
 
+producer = KafkaProducer(
+    bootstrap_servers = "kafka-mmn-gcp-snmohan83-3313.aivencloud.com:18652",
+    security_protocol = "SSL",
+    ssl_cafile = f'{cert_path}/kafka_ca.pem',
+    ssl_certfile = f'{cert_path}/service.cert',
+    ssl_keyfile = f'{cert_path}/service.key',
+)
 
+for i in range(1, 4):
+    message = "message number {}".format(i)
+    print("Sending: {}".format(message))
+    producer.send("demo-topic", message.encode("utf-8"))
 
-client = KafkaClient(hosts="127.0.0.1:9092, 127.0.0.1:9093, ...")
-client.topics
+# Force sending of all messages
 
-topic = client.topics['my.test']
-
-with topic.get_sync_producer() as producer:
-    for in in range(4):
-        producer.produce('test message ' + str(i ** 2))
+producer.flush()
 

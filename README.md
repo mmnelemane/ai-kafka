@@ -46,8 +46,16 @@ The solution would NOT include using any of the following:
       
 
 
+# Pre-Implementation installations
+
+## Installing psycopg2 as a client to run SQL querries with PostGreSQL
+* sudo apt-get install postgresql
+* sudo apt-get install libpq-dev
+* sudo pip3 install psycopg2
+
 # References
 
-* Parts of the producer and consumer code were taken from: 
-  - https://towardsdatascience.com/getting-started-with-apache-kafka-in-python-604b3250aa05
-* 
+* Basic parts of the producer and consumer code were taken from: 
+ - https://help.aiven.io/en/articles/489572-getting-started-with-aiven-kafka
+* Basic parts of the postgresql client was taken from:
+ - https://help.aiven.io/en/articles/489573-getting-started-with-aiven-postgresql
