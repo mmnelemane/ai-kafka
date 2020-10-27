@@ -3,48 +3,91 @@
 from kafka import KafkaConsumer
 from psycopg2.extras import RealDictCursor
 import psycopg2
+import configparser
 
-db_user = "avnadmin"
-db_pass = "xnnaoq445hq74yod"
-db_server = "pg-55a8e64-snmohan83-3313.aivencloud.com"
-db_port = 18650
-db_path = "defaultdb"
-db_sslmode = "require"
+config = configparser.ConfigParser()
+config.read('../ai-kafka.conf')
+
+db_user = config.get('postgresql', 'username')
+db_pass = config.get('postgresql', 'password')
+db_server = config.get('postgresql', 'server_name')
+db_port = config.get('postgresql', 'db_port')
+db_path = config.get('postgresql', 'db_path')
+db_sslmode = config.get('postgresql', 'db_sslmode')
+
 db_uri = f'postgres://{db_user}:{db_pass}@{db_server}:{db_port}/{db_path}?sslmode={db_sslmode}'
-
 db_conn = psycopg2.connect(db_uri)
 
 # TODO: Change to a more standard way of using CERTS
-cert_path = "../certs"
+
+ssl_cafile = config.get('kafka', 'ssl_cafile')
+ssl_certfile = config.get('kafka', 'ssl_certfile')
+ssl_keyfile = config.get('kafka', 'ssl_keyfile')
+kafka_server = config.get('kafka', 'server_name')
+kafka_port = config.get('kafka', 'server_port')
+sec_protocol = config.get('kafka', 'security_protocol')
+
+cert_path = config.get('default', 'cert_path')
+
+print ("Certificates Path: %s\n" % cert_path)
+
+def run_consumer(kafka_server,
+                 kafka_port,
+                 sec_protocol,
+                 cert_path):
+
+    consumer = KafkaConsumer(
+        "topic-webmetrics",
+        auto_offset_reset="earliest",
+        bootstrap_servers=f'{kafka_server}:{kafka_port}',
+        client_id="webmetrics-client-1",
+        group_id="webmetrics-group",
+        security_protocol=f'{sec_protocol}',
+        ssl_cafile=f'{cert_path}/kafka/ca.pem',
+        ssl_certfile=f'{cert_path}/kafka/service.cert',
+        ssl_keyfile=f'{cert_path}kafka/service.key',
+    )
+
+    # Call poll twice. First call will just assign partitions for our
+    # consumer without actually returning anything
+    
+    for _ in range(2):
+        raw_msgs = consumer.poll(timeout_ms=1000)
+        for tp, msgs in raw_msgs.items():
+            for msg in msgs:
+                print("Received: {}".format(msg.value))
+    
+    # Commit offsets so we won't get the same messages again
+    consumer.commit()
 
 def _test_db():
     c = db_conn.cursor(cursor_factory=RealDictCursor)
     c.execute("SELECT 1 = 1")
     result = c.fetchone()
 
-consumer = KafkaConsumer(
-    "demo-topic",
-    auto_offset_reset="earliest",
-    bootstrap_servers="server-name:port",
-    client_id="demo-client-1",
-    group_id="demo-group",
-    security_protocol="SSL",
-    ssl_cafile=f'{cert_path}/kafka_ca.pem',
-    ssl_certfile=f'{cert_path}/service.cert',
-    ssl_keyfile=f'{cert_path}service.key',
-)
+def _print_config(config_file):
+    conf = dict(default = {}, kafka = {}, postgresql = {})
+
+    config = configparser.ConfigParser()
+    config.read(config_file)
+
+    print("Reading defaults Section\n")
+    print("Sections: %s\n" % config.sections())
+
+    for sec in config.options('default'):
+        conf['default'][sec] = config.get('default', sec)
+
+    for sec in config.options('kafka'):
+        conf['kafka'][sec] = config.get('kafka', sec)
+
+    for sec in config.options('postgresql'):
+        conf['postgresql'][sec] = config.get('postgresql', sec)
+
+    print("------------------------------------------------\n")
+    print(conf)
+    print("\n------------------------------------------------\n")
 
 
-# Call poll twice. First call will just assign partitions for our
-# consumer without actually returning anything
-
-for _ in range(2):
-    raw_msgs = consumer.poll(timeout_ms=1000)
-    for tp, msgs in raw_msgs.items():
-        for msg in msgs:
-            print("Received: {}".format(msg.value))
-
-# Commit offsets so we won't get the same messages again
-
-consumer.commit()
+if __name__ == '__main__':
+    _print_config('../ai-kafka.conf')
 
