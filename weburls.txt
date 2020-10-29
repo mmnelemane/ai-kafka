@@ -1,0 +1,24 @@
+{
+     "sites": [
+         { 
+             "url": "https://www.python.org",
+             "text": "Python is a programming language"
+         },
+         { 
+             "url": "https://www.w3schools.com",
+             "text": "THE WORLD'S LARGEST WEB DEVELOPER SITE"
+         },
+         { 
+             "url": "https://www.kernel.org",
+             "text": "The Linux Kernel Archives"
+         },
+         {
+             "url": "https://www.kubernetes.io",
+             "text": "Production-Grade Container Orchestration"
+         },
+         {
+             "url": "https://www.aiven.io",
+             "text": "Performant data pipelines in minutes"
+         }
+    ]
+}
