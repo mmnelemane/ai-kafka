@@ -20,16 +20,9 @@ db_conn = psycopg2.connect(db_uri)
 
 # TODO: Change to a more standard way of using CERTS
 
-ssl_cafile = config.get('kafka', 'ssl_cafile')
-ssl_certfile = config.get('kafka', 'ssl_certfile')
-ssl_keyfile = config.get('kafka', 'ssl_keyfile')
-kafka_server = config.get('kafka', 'server_name')
-kafka_port = config.get('kafka', 'server_port')
-sec_protocol = config.get('kafka', 'security_protocol')
+def _create_pg_database(db_conn):
+    pass
 
-cert_path = config.get('default', 'cert_path')
-
-print ("Certificates Path: %s\n" % cert_path)
 
 def run_consumer(kafka_server,
                  kafka_port,
@@ -39,19 +32,19 @@ def run_consumer(kafka_server,
     consumer = KafkaConsumer(
         "topic-webmetrics",
         auto_offset_reset="earliest",
-        bootstrap_servers=f'{kafka_server}:{kafka_port}',
+        bootstrap_servers="%s:%s" % (kafka_server,kafka_port),
         client_id="webmetrics-client-1",
         group_id="webmetrics-group",
-        security_protocol=f'{sec_protocol}',
-        ssl_cafile=f'{cert_path}/kafka/ca.pem',
-        ssl_certfile=f'{cert_path}/kafka/service.cert',
-        ssl_keyfile=f'{cert_path}kafka/service.key',
+        security_protocol=sec_protocol,
+        ssl_cafile="%s/kafka/%s" % (cert_path, "ca.pem"),
+        ssl_certfile="%s/kafka/%s" % (cert_path, "service.cert"),
+        ssl_keyfile="%s/kafka/%s" % (cert_path, "service.key")
     )
 
     # Call poll twice. First call will just assign partitions for our
     # consumer without actually returning anything
     
-    for _ in range(2):
+    for _ in range(5):
         raw_msgs = consumer.poll(timeout_ms=1000)
         for tp, msgs in raw_msgs.items():
             for msg in msgs:
@@ -90,4 +83,18 @@ def _print_config(config_file):
 
 if __name__ == '__main__':
     _print_config('../ai-kafka.conf')
+
+    ssl_cafile = config.get('kafka', 'ssl_cafile')
+    ssl_certfile = config.get('kafka', 'ssl_certfile')
+    ssl_keyfile = config.get('kafka', 'ssl_keyfile')
+    kafka_server = config.get('kafka', 'server_name')
+    kafka_port = config.get('kafka', 'server_port')
+    sec_protocol = config.get('kafka', 'security_protocol')
+    
+    cert_path = config.get('default', 'cert_path')
+
+    run_consumer(kafka_server,
+                 kafka_port,
+                 sec_protocol,
+                 cert_path)
 
