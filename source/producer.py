@@ -4,7 +4,7 @@ from kafka import KafkaProducer
 import configparser
 import requests
 import json
-
+import time
 
 def _compose_kafka_message(url,
                            response_time,
@@ -55,18 +55,23 @@ def run_producer(kafka_server,
         ssl_keyfile = "%s/kafka/%s" % (cert_path, keyfile)
     )
 
-    urls = []
-    with open(urlfile) as ufile:
-        urls = json.load(ufile)
+    for _ in range(10):
+        urls = []
+        with open(urlfile) as ufile:
+            urls = json.load(ufile)
 
-    msg_no = 0
-    message = dict()
-    for url in urls['sites']:
-        msg_no = msg_no + 1
-        web_metrics = get_webmetrics(url['url'], url['text'])
-        message['msg_id'] = msg_no
-        message.update(web_metrics)
-        producer.send("topic-webmetrics", str(message).encode("utf-8"))
+        msg_no = 0
+        message = dict()
+        for url in urls['sites']:
+            msg_no = msg_no + 1
+            web_metrics = get_webmetrics(url['url'], url['text'])
+            message['msg_id'] = msg_no
+            message['url'] = url['url']
+            message.update(web_metrics)
+            producer.send("topic-webmetrics", str(message).encode("utf-8"))
+
+        print("Producing data after 1 minute")
+        time.sleep(60)
 
     # Force sending of all messages
     

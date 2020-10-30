@@ -14,12 +14,13 @@ def _create_pg_database(db_cursor):
     query = """
         CREATE TABLE IF NOT EXISTS web_metrics (
             event_id INTEGER PRIMARY KEY,
+            url VARCHAR(256),
             status_code INTEGER,
             status_message VARCHAR(256),
             response_time_microsec INTEGER,
             search_text VARCHAR(256),
             search_result INTEGER
-        )
+        );
         """
 
     logger.debug("CREATE QUERY %s" % query)
@@ -30,6 +31,7 @@ def _create_pg_database(db_cursor):
 
 def _insert_db_record(db_cursor,
                    event_id,
+                   url,
                    status_code, 
                    status_message,
                    response_time,
@@ -37,9 +39,9 @@ def _insert_db_record(db_cursor,
                    search_result):
 
     insert_query = """
-        INSERT INTO TABLE web_metrics (event_id,
-            status_code, status_message, response_time_microsec, 
-            search_text, search_result) VALUES (%d, %d, %s, %d, %s, %d)
+        INSERT INTO web_metrics (event_id, status_code, status_message, 
+            response_time_microsec, search_text, search_result)
+            VALUES(%s, %s, %s, %s, %s, %s);
         """
     logger.debug("INSERT QUERY %s" % insert_query)
     try:
@@ -49,12 +51,50 @@ def _insert_db_record(db_cursor,
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
 
+def _update_db_record(db_cursor,
+                   event_id,
+                   url,
+                   status_code, 
+                   status_message,
+                   response_time,
+                   search_text,
+                   search_result):
+
+    update_query = """
+        UPDATE web_metrics set event_id = %s, status_code = %s,
+            status_message = %s, response_time_microsec = %s,
+            search_text = %s, search_result = %s) WHERE
+            url = %s;
+        """
+    logger.debug("UPDATE QUERY %s" % update_query)
+    try:
+        db_cursor.execute(update_query, 
+                          (event_id, status_code, status_message,
+                           response_time, search_text, search_result, url))
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+
+def _get_record_by_url(db_cursor, url):
+    exists = False
+    select_query = """
+        SELECT event_id, url FROM web_metrics WHERE url = %s
+        """
+    try:
+        db_cursor.execute(select_query, url)
+        row = db_cursor.fetchall()
+        if row.count > 0:
+            exists = True
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+    return exists
 
 def _get_all_records(db_cursor):
     select_query = """
-        SELECT event_id, status_code, status_message,
+        SELECT event_id, url, status_code, status_message,
                response_time_microsec, search_text,
-               search_result FROM web_metrics
+               search_result FROM web_metrics;
         """
     logger.debug("SELECT QUERY: %s" % select_query)
     try:
@@ -65,7 +105,6 @@ def _get_all_records(db_cursor):
             row = db_cursor.fetchone()
     except (Exception, psycopg2.DatabaseError) as error:
         print(error)
-
 
 
 def run_consumer(kafka_server,
@@ -90,15 +129,26 @@ def run_consumer(kafka_server,
     # Call poll twice. First call will just assign partitions for our
     # consumer without actually returning anything
     
-    for _ in range(50):
+    while True:
         raw_msgs = consumer.poll(timeout_ms=1000)
         for tp, msgs in raw_msgs.items():
             for msg in msgs:
                 print("Received: {}".format(msg.value))
                 record = eval(msg.value)
-                print ("Record: %s" % record)
-                _insert_db_record(db_cursor,
+                print ("Record: %s" % str(record))
+                if _get_record_by_url(db_cursor, record['url']):
+                    _update_db_record(db_cursor,
                                   event_id = record['msg_id'],
+                                  url = record['url'],
+                                  status_code = record['status_code'], 
+                                  status_message = record['status_message'],
+                                  response_time = record['resp_time'],
+                                  search_text = record['text'],
+                                  search_result = record['search'])
+                else:
+                    _insert_db_record(db_cursor,
+                                  event_id = record['msg_id'],
+                                  url = record['url'],
                                   status_code = record['status_code'], 
                                   status_message = record['status_message'],
                                   response_time = record['resp_time'],
@@ -143,9 +193,11 @@ if __name__ == '__main__':
     
     db_uri = "postgres://%s:%s@%s:%s/%s?sslmode=%s" % (db_user, db_pass, db_server, db_port, db_path, db_sslmode)
     db_conn = psycopg2.connect(db_uri)
-    db_cursor = db_conn.cursor(cursor_factory=RealDictCursor)
+    db_cursor = db_conn.cursor()
 
     _create_pg_database(db_cursor)
+
+    db_conn.commit()
 
     _print_config('../ai-kafka.conf')
 
@@ -163,6 +215,8 @@ if __name__ == '__main__':
                  sec_protocol,
                  cert_path,
                  db_cursor)
+
+    db_conn.commit()
 
     print("DB Records after writing them\n")
     print("---------------------------------------------------------------\n")
