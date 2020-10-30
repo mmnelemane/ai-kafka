@@ -13,7 +13,7 @@ def _compose_kafka_message(url,
     return "%s;%s;%s;%s;" % (url, response_time, error_code, search_result)
     
 def get_webmetrics(url, search_text):
-    availability = False
+    status = -1
     response_time = -1
     error = "None"
     find_result = -1
@@ -22,20 +22,19 @@ def get_webmetrics(url, search_text):
         response = requests.get(url)
         response_time = response.elapsed.microseconds
 
-        if response.status_code == 200:
-            availability = True
-            error = "None"
-        else: 
-            error = response.reason
+        status = response.status_code
+        error = response.reason
 
         find_result = response.text.find(search_text)
+
     except:
         logging.error('Response has errors')
 
-    return dict(avail=availability, 
+    return dict(status_code=status, 
                 resp_time=response_time,
-                err=error,
-                search=find_result)
+                status_message=error,
+                search=find_result,
+                text=search_text)
 
     
 def run_producer(kafka_server,
