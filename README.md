@@ -52,6 +52,8 @@ The solution would NOT include using any of the following:
 * sudo apt-get install postgresql
 * sudo apt-get install libpq-dev
 * sudo pip3 install psycopg2
+* sudo pip3 install kafka-python
+* sudo pip3 install python-requests
 
 # References
 
