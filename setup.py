@@ -1,24 +1,29 @@
-import os
-from setuptools import setup
-from nvpy import nvpy
+import setuptools
 
-setup(
-    name = "ai-kafka",
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name = "ai_kafka",
     version = "0.1",
     author = "Madhu Mohan Nelemane",
     author_email = "snmohan83@gmail.com",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     description = "An example of using Aiven Kafka and Aiven PostgreSQL services",
-    license = "Creative Commons",
+    license = "Madhu Mohan Nelemane",
     url = "https://github.com/mmnelemane/ai-kafka",
-    packages=['myscript'],
+    packages=setuptools.find_packages(),
     entry_points = {
-        'consumer' : ['consumer = ai-kafka.consumer:main'],
-        'producer' : ['producer = ai-kafka.producer:main']
+        "console_scripts" : [
+            "aikafka=ai_kafka.command_line:main"
+        ]
     },
     data_files = [
         ('./', ['weburls.txt'])
     ],
     classifiers=[
-        "License ::  :: BSD License",
+        "License :: Other/Self ",
     ],
+    python_requires='>=3.6',
 )

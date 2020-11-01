@@ -6,8 +6,8 @@
 
 import os, time
 import sys, getopt
-import producer
-import consumer
+from ai_kafka import producer
+from ai_kafka import consumer
 import pprint
 import getopt
 import threading
@@ -41,7 +41,8 @@ def print_config(config_file):
     print("\n------------------------------------------------\n")
 
 
-if __name__ == '__main__':
+def main(args=None):
+
     configfile = ""
     inputfile = ""
 
@@ -116,4 +117,5 @@ if __name__ == '__main__':
     consumer_thread.join()
     producer_thread.join()
 
-
+if __name__=='__main__':
+    sys.exit(main())
