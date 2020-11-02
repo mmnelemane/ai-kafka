@@ -20,10 +20,10 @@ setuptools.setup(
         ]
     },
     data_files = [
-        ('./', ['weburls.txt'])
+        ('./', ['weburls.json'])
     ],
     classifiers=[
-        "License :: Other/Self ",
+        "License :: Other/Proprietary ",
     ],
     python_requires='>=3.6',
 )
