@@ -1,5 +1,4 @@
 python-requests
 kafka-python
 postgresql
-libpq-dev
 psycopg2

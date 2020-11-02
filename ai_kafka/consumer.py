@@ -9,8 +9,6 @@ from psycopg2.extras import RealDictCursor
 
 logging.basicConfig(filename="aikafka.log", level=logging.DEBUG)
 logger = logging.getLogger("kafka_consumer")
-# TODO: Change to a more standard way of using CERTS
-
 
 class AivenKafkaConsumer(object):
     def __init__(self, interval, db_user, db_pass, db_server,
@@ -97,15 +95,17 @@ class AivenKafkaConsumer(object):
     
     
     def get_record_by_url(self, db_cursor, url):
-        print ("INSIDE get_record_by_url %s" % url)
+        logging.basicConfig(filename='aikafka_consumer.log',level=logging.DEBUG)
+        logger = logging.getLogger('consumer_thread')
+        logger.debug("INSIDE get_record_by_url", url)
         exists = False
         select_query = """
-            SELECT event_id, url FROM web_metrics WHERE url = %s
+            SELECT event_id, url FROM web_metrics WHERE url = '%s'
             """
         try:
             db_cursor.execute(select_query, url)
-            row = db_cursor.fetchall()
-            print("ROW  in get_record_by_url: ", row)
+            row = db_cursor.fetchone()
+            logger.debug("ROW in get_record_by_url:", row)
             if row.count > 0:
                 exists = True
         except (Exception, psycopg2.DatabaseError) as error:
@@ -169,9 +169,9 @@ class AivenKafkaConsumer(object):
             raw_msgs = consumer.poll(timeout_ms=1000)
             for tp, msgs in raw_msgs.items():
                 for msg in msgs:
-                    print("Received: {}".format(msg.value))
+                    # print("Received: {}".format(msg.value))
                     record = eval(msg.value)
-                    print ("Record: %s" % str(record))
+                    # print ("Record: %s" % str(record))
                     rec_exists = self.get_record_by_url(db_cursor, record['url'])
                     if rec_exists:
                         self._update_db_record(db_cursor,

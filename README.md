@@ -4,15 +4,14 @@ An implementation using Kafka as a Service
 
 # Application Description
 
-This is a system that:
+The ai-kafka library does the following actions:
  * monitors website availability over the network,
  * produces metrics about the website availability,
  * persists the events passing through an Aiven Kafka instance into an Aiven PostgreSQL database.
 
 For this, it implements a Kafka producer which periodically checks the target websites and sends 
 the check results to a Kafka topic. A Kafka consumer storing the data to an Aiven PostgreSQL database.
-For this local setup, these components run in the same machine but in production use similar components
-would run in different systems.
+For this local setup, these components run in the same machine.
 
 The website checker should perform the checks periodically and collect the HTTP response time,
 error code returned, as well as optionally checking the returned page contents for a regexp pattern
@@ -21,39 +20,98 @@ that is expected to be found on the page.
 For the database writer we expect to see a solution that records the check results into one or more
 database tables and could handle a reasonable amount of checks performed over a longer period of time.
 
-Even though this is a small concept program, returned homework should include tests and proper packaging. If your tests require Kafka and PostgreSQL services, for simplicity your tests can assume those are already running, instead of integrating Aiven service creation and deleting.
-Aiven is a Database as a Service vendor and the homework requires using our services. Please register to Aiven at https://console.aiven.io/signup.html at which point you'll automatically be given $300 worth of credits to play around with. The credits should be enough for a few hours of use of our services. If you need more credits to complete your homework, please contact us.
-
-The solution would NOT include using any of the following:
-
-    • Database ORM libraries - use a Python DB API compliant library and raw SQL queries instead
-    • Extensive container build recipes - rather focus on the Python code, tests, documentation and ease of execution.
-      
-# Criteria for evaluation (TODO: Remove this section after completion)
-    • Code formatting and clarity. We value readable code written for other developers, not for a
-      tutorial, or as one-off hack.
-    • We appreciate demonstrating your experience and knowledge, but also utilizing  existing libraries.
-      There is no need to re-invent the wheel.
-    • Practicality of testing. 100% test coverage may not be practical, and also having 100% coverage
-      but no validation is not very useful.
-    • Automation. We like having things work automatically, instead of multi-step instructions to run
-      misc commands to set up things. Similarly, CI is a relevant thing for automation.
-    • Attribution. If you take code from Google results, examples etc., add attributions. We all know
-      new things are often written based on search results.
-    • "Open source ready" repository. It's very often a good idea to pretend the homework assignment
-      in Github is used by random people (in practice, if you want to, you can delete/hide the repository
-      as soon as we have seen it).
-      
-
-
 # Pre-Implementation installations
 
-## Installing psycopg2 as a client to run SQL querries with PostGreSQL
+
+### (Note: This application is tested with Python 3.6 or higher)
+
 * sudo apt-get install postgresql
 * sudo apt-get install libpq-dev
 * sudo pip3 install psycopg2
 * sudo pip3 install kafka-python
 * sudo pip3 install python-requests
+
+# Installing the ai-kafka application
+
+
+```
+$ git clone https://github.com/mmnelemane/ai-kafka
+$ cd ai-kafka
+$ sudo python3 setup.py install
+```
+
+A binary `aikafka` is installed in `/usr/local/bin/` on the host.
+
+# Running the application
+1. Ensure that Aiven Kafka and Aiven PostgreSQL services are running.
+2. Download and store the certificates for Aiven Kafka and PostgreSQL services.
+   The files are expected to be stored in the following directory structure:
+   
+   ```
+   certs/
+       kafka/
+           ca.pem
+           service.key
+           service.cert
+       pgsql/
+           ca.pem
+    ```
+
+2. Update the Config file with the details about the Aiven services. A sample `ai-kafka.conf` is found
+   in the package.
+
+3. Write an input file in the format of `weburls.json' listing all the URLs and a searchable text.
+
+4. Start aikafka application as:
+
+   ```
+   $ aikafka --configfile <configfile_name> --inputfile <inputfile_name>
+   ```
+
+## Additional commands to help
+
+1. To check if the configuration has been read properly
+
+```
+$ aikafka --configfile <configfile_name> --inputfile <inputfile_name> --printconfig
+```
+
+2. To print help text for the application
+```
+$ aikafka --help
+```
+
+3. Shortcuts for options
+
+```
+"--configfile"  == "-c"
+"--inputfile"   == "-i"
+"--printconfig" == "-p"
+"--help"        == "-h"
+```
+
+4. The recorded website information can be obtained by logging into the pgsql database `defaultdb`
+   The entries are recorded in `web_metrics` table which can be fetched with:
+   ```
+   SELECT * from web_metrics;
+   ```
+
+# Features yet to be implemented
+
+## Enhancing the Application
+1. Create an `events` table which will record changes in the `web_metrics`. 
+   The entries in the `events` table could be done through a trigger in `web_metrics` table.
+
+2. A cleaner way for user to fetch database tables
+
+3. A completed Debian or RPM package (.deb or .rpm) to install on several platforms.
+
+4. To be able to run aikafka as a systemd service daemon.
+
+5. An `aikafkactl` API that can interact with a systemd daemon to provide functionalities
+   for the user
+
+6. A way to clear old entries (e.g: older than a few days) to ensure scalability. 
 
 # References
 
@@ -61,3 +119,4 @@ The solution would NOT include using any of the following:
  - https://help.aiven.io/en/articles/489572-getting-started-with-aiven-kafka
 * Basic parts of the postgresql client was taken from:
  - https://help.aiven.io/en/articles/489573-getting-started-with-aiven-postgresql
+* Several stack overflow and python blogs were used to learn about specific usage syntax
