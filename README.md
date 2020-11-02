@@ -113,6 +113,8 @@ $ aikafka --help
 
 6. A way to clear old entries (e.g: older than a few days) to ensure scalability. 
 
+7. An improved logging mechanism with multithreading to help troubleshooting.
+
 # References
 
 * Basic parts of the producer and consumer code were taken from: 
