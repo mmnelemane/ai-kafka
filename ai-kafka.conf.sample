@@ -1,0 +1,56 @@
+[default]
+
+# Path where certificates and keys for kafka and postgresql are stored
+cert_path = #/mnt/data/home/prj/hack/ai-kafka/certs
+# kafka certificates are expected at ${cert_path}/kafka/
+# postgresql certificates are expected at ${cert_path}/pgsql/
+
+# The period(in seconds) between end of a monitoring and starting a new one
+check_interval = 20
+
+# Aiven Kafka configurations
+[kafka]
+
+# Authentication config (default=SSL)
+security_protocol = SSL
+
+# Names of the certificate files (commonly used names are provided here)
+ssl_cafile = ca.pem
+ssl_certfile = service.cert
+ssl_keyfile = service.key
+
+# Service Configuration
+
+# Name of Kafka Server read from Aiven console
+server_name = # <service_name>-<username>-<user-id>.aivencloud.com
+
+# Port where Kafka service is served
+server_port = # <kafka-server port>
+
+# Topic to use to publish (update as required) 
+topic = topic-webmetrics
+
+[postgresql]
+
+# Authentication config
+
+# Username to login to postgresql
+username = <postgress-user-name>
+
+# password to login to postgresql 
+password = <postgres-user-name>
+
+# Service Configuration
+
+# PostgreSQL server name
+server_name = # <pg-service-name>-<user-name>-<user-id>.aivencloud.com
+
+# Port to access postgresql
+db_port = # <pgsql-port>
+
+# Name of database (default='defaultdb')
+db_path = # <default-db>
+
+# If ssl mode is required (default='require')
+db_sslmode = require
+

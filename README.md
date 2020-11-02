@@ -57,8 +57,8 @@ A binary `aikafka` is installed in `/usr/local/bin/` on the host.
            ca.pem
     ```
 
-2. Update the Config file with the details about the Aiven services. A sample `ai-kafka.conf` is found
-   in the package.
+2. Update the Config file with the details about the Aiven services. A sample `ai-kafka.conf.sample`
+   is found in the package. Refer to this file for help on filling up the config.
 
 3. Write an input file in the format of `weburls.json' listing all the URLs and a searchable text.
 
