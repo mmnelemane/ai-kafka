@@ -22,6 +22,7 @@ database tables and could handle a reasonable amount of checks performed over a 
 
 # Pre-Implementation installations
 
+### This application was developed and tested on Ubuntu 20.04.1 LTS.
 
 ### (Note: This application is tested with Python 3.6 or higher)
 
