@@ -20,9 +20,12 @@ class AivenKafkaConsumer(object):
         self.db_port = db_port
         self.db_path = db_path
         self.db_sslmode = db_sslmode
+        self.consumer = None
 
+    def get_consumer_instance(self):
+        return self.consumer
 
-    def _create_pg_database(self, db_cursor):
+    def create_pg_database(self, db_cursor):
         logger.debug("create_pg_database")
         web_metrics = """
             CREATE TABLE IF NOT EXISTS web_metrics (
@@ -42,7 +45,7 @@ class AivenKafkaConsumer(object):
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
     
-    def _insert_db_record(self,
+    def insert_db_record(self,
                        db_cursor,
                        event_id,
                        url,
@@ -59,9 +62,6 @@ class AivenKafkaConsumer(object):
                 VALUES(%s, %s, %s, %s, %s, %s, %s);
             """
 
-        query_str = insert_query % (event_id, url, status_code, status_message,
-                                    response_time, search_text, search_result)
-        logger.debug("INSERT QUERY %s" % query_str)
         try:
             db_cursor.execute(insert_query, 
                              (event_id, url, status_code, status_message,
@@ -69,7 +69,7 @@ class AivenKafkaConsumer(object):
         except (Exception, psycopg2.DatabaseError) as error:
             print(error)
     
-    def _update_db_record(self,
+    def update_db_record(self,
                        db_cursor,
                        event_id,
                        url,
@@ -95,9 +95,7 @@ class AivenKafkaConsumer(object):
     
     
     def get_record_by_url(self, db_cursor, url):
-        logging.basicConfig(filename='aikafka_consumer.log',level=logging.DEBUG)
-        logger = logging.getLogger('consumer_thread')
-        logger.debug("INSIDE get_record_by_url", url)
+        logger.debug("INSIDE get_record_by_url %s" % url)
         exists = False
         select_query = """
             SELECT event_id, url FROM web_metrics WHERE url = '%s'
@@ -105,7 +103,7 @@ class AivenKafkaConsumer(object):
         try:
             db_cursor.execute(select_query, url)
             row = db_cursor.fetchone()
-            logger.debug("ROW in get_record_by_url:", row)
+            logger.debug("ROW in get_record_by_url: %s" % str(row))
             if row.count > 0:
                 exists = True
         except (Exception, psycopg2.DatabaseError) as error:
@@ -143,13 +141,13 @@ class AivenKafkaConsumer(object):
 
         logger.debug("Creating Tables")
         if db_cursor is not None:
-            self._create_pg_database(db_cursor)
+            self.create_pg_database(db_cursor)
         else:
             print("Cannot create Database.")
             sys.exit(2)
         
         logger.debug("Starting Consumer Thread")
-        consumer = KafkaConsumer(
+        self.consumer = KafkaConsumer(
             topic,
             auto_offset_reset="earliest",
             enable_auto_commit=True,
@@ -166,7 +164,7 @@ class AivenKafkaConsumer(object):
         # consumer without actually returning anything
         
         while True:
-            raw_msgs = consumer.poll(timeout_ms=1000)
+            raw_msgs = self.consumer.poll(timeout_ms=1000)
             for tp, msgs in raw_msgs.items():
                 for msg in msgs:
                     # print("Received: {}".format(msg.value))
@@ -174,7 +172,7 @@ class AivenKafkaConsumer(object):
                     # print ("Record: %s" % str(record))
                     rec_exists = self.get_record_by_url(db_cursor, record['url'])
                     if rec_exists:
-                        self._update_db_record(db_cursor,
+                        self.update_db_record(db_cursor,
                                       event_id = record['msg_id'],
                                       url = record['url'],
                                       status_code = record['status_code'], 
@@ -183,7 +181,7 @@ class AivenKafkaConsumer(object):
                                       search_text = record['text'],
                                       search_result = record['search'])
                     else:
-                        self._insert_db_record(db_cursor,
+                        self.insert_db_record(db_cursor,
                                       event_id = record['msg_id'],
                                       url = record['url'],
                                       status_code = record['status_code'], 
@@ -193,7 +191,7 @@ class AivenKafkaConsumer(object):
                                       search_result = record['search'])
                     db_conn.commit()
             # Commit offsets so we won't get the same messages again
-            consumer.commit()
+            self.consumer.commit()
             time.sleep(self.interval)
 
         # TODO: Need a graceful exit in case of errors.
@@ -230,7 +228,7 @@ if __name__ == '__main__':
     db_conn = aconsumer.get_db_connection()
     db_cursor = db_conn.cursor()
 
-    aconsumer._create_pg_database(db_cursor)
+    aconsumer.create_pg_database(db_cursor)
 
     db_conn.commit()
 

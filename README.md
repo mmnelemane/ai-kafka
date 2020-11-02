@@ -115,6 +115,8 @@ $ aikafka --help
 
 7. An improved logging mechanism with multithreading to help troubleshooting.
 
+8. Complete and improve tests.
+
 # References
 
 * Basic parts of the producer and consumer code were taken from: 
